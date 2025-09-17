@@ -205,7 +205,8 @@ json *extract_int ( FILE* s ) {
 		nbr = nbr * 10 + getc(s) - '0'; 
 	}
 
-	return nbr * sign;
+	nbr *= sign;
+	return create_node(INTERGER, &nbr);
 }
 
 
