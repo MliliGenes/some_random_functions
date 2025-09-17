@@ -192,6 +192,23 @@ json* extract_str ( FILE* s ) {
 
 }
 
+json *extract_int ( FILE* s ) {
+	int sign = 1;
+	int nbr = 0;
+
+	if ( peek(s) == '-' ) {
+		sign *= -1;
+		getc( s );
+	}
+
+	while (isdigit(peek(s))) {
+		nbr = nbr * 10 + getc(s) - '0'; 
+	}
+
+	return nbr * sign;
+}
+
+
 json *parse ( json* head, FILE* stream ) {
 
 	char le_peek = peek( stream );
