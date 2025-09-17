@@ -3,19 +3,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
-#include <unistd.h>
-
+#include <unistd.h>:
 
 typedef enum {
 	MAP,
 	INTEGER,
 	STRING
 } e_type;
-
-typedef struct	pair {
-	char	*key;
-	json	value;
-}	pair;
 
 typedef struct map {
 	struct pair	*data;
@@ -30,6 +24,11 @@ typedef struct	json {
 		char	*string;
 	};
 }	json;
+
+typedef struct	pair {
+	char	*key;
+	json	value;
+}	pair;
 
 int	peek(FILE *stream)
 {
@@ -162,7 +161,6 @@ json* extract_str ( FILE* s ) {
 	if (!str) return NULL;
 
 	while ( true ) {
-
 		if (len >= cap) {
 			cap *= 2;
 			char *new_str = realloc(str, cap);
@@ -175,21 +173,19 @@ json* extract_str ( FILE* s ) {
 
 		char le_peek = peek(s);
 		if (le_peek == '\"') {
+			str[len] = '\0';
 			getc(s);
 			break;
 		}
-
 		if (le_peek == EOF) {
 			free(str);
 			return NULL;
 		}
-
 		if (le_peek == '\\') {
 			getc(s);
 		}
 
 		str[len++] = getc(s);
-
 	}
 
 	return create_node( STRING, str );
