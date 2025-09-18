@@ -27,15 +27,15 @@ void sort(char* str) {
 	int j = 0;
 	while ( j < len )
 	{
-		int i = j + 1;
-		while ( i < len ) {
-			if ( str[j] > str[i] ) {
-				char tmp = str[i];
-				str[i] = str[j];
-				str[j] = tmp;
-			}
-			i++;
-		}
+        int i = 0;
+        while ( i < len - j ) {
+            if ( i + 1 < len && str[i] > str[i+ 1] ) {
+                char tmp = str[i + 1];
+                str[i + 1] = str[i];
+                str[i] = tmp;
+            }
+            i++;
+        }
 		j++;
 	}
 }
@@ -56,7 +56,7 @@ int premute( char* str ) {
 
 	char tmp = str[swap];
 	str[swap] = str[target -1];
-	str[target - 1] = tmp;
+    str[target - 1] = tmp;
 
 	sort(str + target);
 	return 1;
