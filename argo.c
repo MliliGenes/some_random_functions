@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
-#include <unistd.h>:
+#include <unistd.h>
 
 typedef enum {
 	MAP,
@@ -120,8 +120,17 @@ int	argo(json *dst, FILE *stream);
 int main ( int ac, char** av ) {
 	if ( ac != 2 ) return 1;
 	FILE *stream = fopen(av[1], "r");
-	
-	json *head = NULL;
+	if ( !stream ) return 1;
+	json head;
+	if ( argo( &head, stream ) == -1 ) {
+		fclose(stream);
+		return 1;
+	}
+	serialize(head);
+	puts("");
+	free_json(head);
+	fclose(stream);
+	return 0;
 }
 
 e_type get_type( char c ) 
@@ -150,87 +159,164 @@ json *create_node( int type, void *data ) {
 	return node;
 }
 
-json* extract_str ( FILE* s ) {
-	
-	if (!accept(s, '\"'))
-		return NULL;
+bool extract_str(json *dst, FILE *s) {
+    if (!accept(s, '"')) { unexpected(s); return false; }
 
-	int cap = 16;
-	int len = 0;
-	char *str = malloc(cap);
-	if (!str) return NULL;
+    int cap = 16, len = 0;
+    char *str = malloc(cap);
+    if (!str) return false;
 
-	while ( true ) {
-		if (len >= cap) {
-			cap *= 2;
-			char *new_str = realloc(str, cap);
-			if (!new_str) {
-				free(str);
-				return NULL;
+    while (true) {
+        if (len >= cap) {
+            cap *= 2;
+            char *tmp = realloc(str, cap);
+            if (!tmp) { free(str); return false; }
+            str = tmp;
+        }
+
+        char c = peek(s);
+        if (c == '"') { str[len] = '\0'; getc(s); break; }
+        if (c == EOF) { free(str); 	unexpected(s); return false; }
+        if (c == '\\') getc(s);
+
+        str[len++] = getc(s);
+    }
+
+    dst->type = STRING;
+    dst->string = str;
+    return true;
+}
+
+
+bool extract_int(json *dst, FILE *s) {
+    int sign = 1;
+    long nbr = 0;
+
+    if (peek(s) == '-') {
+        sign = -1;
+        getc(s);
+    }
+
+    if (!isdigit(peek(s))) {
+        unexpected(s);
+        return false;
+    }
+
+    while (isdigit(peek(s))) {
+        nbr = nbr * 10 + (getc(s) - '0');
+    }
+
+    dst->type = INTEGER;
+    dst->integer = (int)(nbr * sign); // truncate to int
+    return true;
+}
+
+
+
+bool parse ( json* head, FILE* stream );
+
+bool extract_map(json *dst, FILE *s) {
+    if (!accept(s, '{')) {
+        unexpected(s);
+        return false;
+    }
+
+    int cap = 5;
+    int len = 0;
+    pair *data = malloc(sizeof(pair) * cap);
+    if (!data) return false;
+
+    while (true) {
+        if (len >= cap) {
+            cap *= 2;
+            pair *new_data = realloc(data, sizeof(pair) * cap);
+            if (!new_data) {
+                for (int idx = 0; idx < len; idx++) {
+                    free(data[idx].key);
+                    free_json(data[idx].value);
+                }
+                free(data);
+                return false;
+            }
+            data = new_data;
+        }
+
+        char c = peek(s);
+        if (c != '"') {
+            free(data);
+            unexpected(s);
+            return false;
+        }
+
+        json key;
+        if (!extract_str(&key, s)) {
+            free(data);
+            return false;
+        }
+
+        if (!expect(s, ':')) {
+            free(data);
+            free(key.string);
+			unexpected(s);
+            return false;
+        }
+
+        json value;
+        if (!parse(&value, s)) {
+			for (int idx = 0; idx < len; idx++) {
+				free(data[idx].key);
+				free_json(data[idx].value);
 			}
-			str = new_str;
-		}
+            free(data);
+            free(key.string);
+            return false;
+        }
 
-		char le_peek = peek(s);
-		if (le_peek == '\"') {
-			str[len] = '\0';
-			getc(s);
-			break;
-		}
-		if (le_peek == EOF) {
-			free(str);
-			return NULL;
-		}
-		if (le_peek == '\\') {
-			getc(s);
-		}
+        data[len++] = (pair){ .key = key.string, .value = value };
 
-		str[len++] = getc(s);
-	}
+        c = peek(s);
+        if (c == ',') {
+            accept(s, ',');
+            continue;
+        }
+        break;
+    }
 
-	return create_node( STRING, str );
+    if (!expect(s, '}')) {
+        for (int idx = 0; idx < len; idx++) {
+            free(data[idx].key);
+            free_json(data[idx].value);
+        }
+        free(data);
+		unexpected(s);
+        return false;
+    }
 
+    dst->type = MAP;
+    dst->map.data = data;
+    dst->map.size = len;
+    return true;
 }
 
-json *extract_int ( FILE* s ) {
-	int sign = 1;
-	int nbr = 0;
-
-	if ( peek(s) == '-' ) {
-		sign *= -1;
-		getc( s );
-	}
-
-	while (isdigit(peek(s))) {
-		nbr = nbr * 10 + getc(s) - '0'; 
-	}
-
-	nbr *= sign;
-	return create_node(INTERGER, &nbr);
-}
-
-
-json *parse ( json* head, FILE* stream ) {
+bool parse ( json* head, FILE* stream ) {
 
 	char le_peek = peek( stream );
 
 	e_type le_type = get_type ( le_peek );
 	if  ( le_type == -1 )
-		return NULL;
+		return false;
 
 	if ( le_type == STRING )
-		return extract_str( stream );
+		return extract_str( head, stream );
 	if ( le_type == INTEGER )
-
+		return extract_int( head, stream );
 	if ( le_type == MAP)
+		return extract_map( head, stream );
 
-	return NULL;
+	return false;
 }
 
 int argo(json* dst, FILE* stream) {
-	
-
-
-
-
+	if ( !parse( dst, stream )) return -1;
+	return 1;
 }
