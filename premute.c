@@ -38,7 +38,7 @@ int _strlen( char* str ) {
 int premute( char* str ) {
 	int target = _strlen(str) - 1;
 
-	while (target > 0 && str[target - 1] > str[target])
+	while (target > 0 && str[target - 1] >= str[target])
 		target --;
 
 	if (target <= 0)
@@ -46,7 +46,7 @@ int premute( char* str ) {
 
 	int swap = _strlen(str) - 1;
 
-	while ( swap > 0 && str[swap] < str[target - 1] )
+	while ( swap > 0 && str[swap] <= str[target - 1] )
 		swap --;
 
 	char tmp = str[swap];
