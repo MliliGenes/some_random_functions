@@ -14,25 +14,30 @@ int main(int ac, char **av) {
 		puts(str);
 }
 
-void sort(char* str) {
-	for (int i = 0; str[i]; i++) {
-	   for (int j = i; str[j]; j++) {
-			if ( str[i] > str[j] )
-			{
-				char tmp = str[i];
-				str[i] = str[j];
-				str[j] = tmp;
-			}
-	   }
-	}
-}
-
 int _strlen( char* str ) {
 	if (!str) return 0;
 	int i = 0;
 	for (i = 0; str[i]; i++)
 		continue;
 	return i;
+}
+
+void sort(char* str) {
+	int len = _strlen(str);
+	int j = 0;
+	while ( j < len )
+	{
+		int i = j + 1;
+		while ( i < len ) {
+			if ( str[j] > str[i] ) {
+				char tmp = str[i];
+				str[i] = str[j];
+				str[j] = tmp;
+			}
+			i++;
+		}
+		j++;
+	}
 }
 
 int premute( char* str ) {
