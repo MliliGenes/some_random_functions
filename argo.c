@@ -127,7 +127,6 @@ int main ( int ac, char** av ) {
 		return 1;
 	}
 	serialize(head);
-	puts("");
 	free_json(head);
 	fclose(stream);
 	return 0;
