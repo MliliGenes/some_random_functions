@@ -58,17 +58,15 @@ char *str_join(char *buf, char *add)
 
 // sel logic
 
-#define TEXT 4096
-
 size_t max_fds = 0, count = 0;
 
 int listen_fd;
 fd_set read_set, write_set, origin_set;
 
-int clients[65536];
-char *clients_messages[65536];
+int clients[50000];
+char *clients_messages[50000];
 
-char write_buff[TEXT], read_buff[TEXT];
+char write_buff[4096], read_buff[4096];
 
 void fatal_error(char *msg)
 {
@@ -126,8 +124,6 @@ void add_client(int client_fd)
 
 void accept_client()
 {
-    struct sockaddr_in servaddr;
-
     int client_fd = accept(listen_fd, NULL, NULL);
     if (client_fd == -1)
         return;
@@ -147,7 +143,7 @@ void remove_client(int fd) {
 
 void read_message(int fd)
 {
-    int n = recv(fd, read_buff, 1000, 0);
+    int n = recv(fd, read_buff, 4096 - 1, 0);
 
     if (n <= 0)
     {
@@ -196,7 +192,7 @@ void start_server()
 
 int main(int ac, char **av)
 {
-    if (ac < 2)
+    if (ac != 2)
         fatal_error("Wrong number of arguments");
 
     init_socket();
